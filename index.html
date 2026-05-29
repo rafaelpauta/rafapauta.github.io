@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Painel de Tarefas</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background: #f4f4f4;
+      color: #222;
+      padding: 32px;
+    }
+
+    header {
+      margin-bottom: 32px;
+    }
+
+    header h1 {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    header p {
+      color: #666;
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+
+    .coluna {
+      background: #fff;
+      padding: 24px;
+      border-radius: 16px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    }
+
+    .coluna h2 {
+      margin-bottom: 16px;
+      font-size: 22px;
+    }
+
+    .tarefa {
+      background: #f8f8f8;
+      border-left: 5px solid #333;
+      padding: 16px;
+      border-radius: 10px;
+      margin-bottom: 12px;
+    }
+
+    .tarefa h3 {
+      margin-bottom: 6px;
+      font-size: 18px;
+    }
+
+    .tarefa p {
+      margin-bottom: 8px;
+      color: #555;
+    }
+
+    .info {
+      font-size: 14px;
+      color: #777;
+      margin-bottom: 10px;
+    }
+
+    .botoes {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: none;
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .btn-andamento {
+      background: #222;
+      color: #fff;
+    }
+
+    .btn-fila {
+      background: #ddd;
+      color: #222;
+    }
+
+    .btn-completa {
+      background: #d8f5d1;
+      color: #1f6b2a;
+    }
+
+    .btn-remover {
+      background: #ffdddd;
+      color: #900;
+    }
+
+    .formulario {
+      background: #fff;
+      padding: 24px;
+      border-radius: 16px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+      max-width: 700px;
+    }
+
+    .formulario h2 {
+      margin-bottom: 16px;
+    }
+
+    form {
+      display: grid;
+      gap: 14px;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 15px;
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .btn-enviar {
+      background: #222;
+      color: white;
+      padding: 12px;
+      font-size: 16px;
+    }
+
+    @media (max-width: 1000px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 800px) {
+      body {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Pauta - Rafa</h1>
+    <p>Acompanhe as tarefas em andamento, as demandas na fila e as atividades concluídas.</p>
+  </header>
+
+  <main>
+    <section class="container">
+      <div class="coluna">
+        <h2>Em andamento</h2>
+        <div id="tarefas-andamento"></div>
+      </div>
+
+      <div class="coluna">
+        <h2>Na fila</h2>
+        <div id="tarefas-fila"></div>
+      </div>
+
+      <div class="coluna">
+        <h2>Atividades completas</h2>
+        <div id="tarefas-completas"></div>
+      </div>
+    </section>
+
+    <section class="formulario">
+      <h2>Enviar nova tarefa</h2>
+
+      <form id="form-tarefa">
+        <input type="text" id="titulo" placeholder="Título da tarefa" required />
+
+        <textarea id="descricao" placeholder="Descreva a tarefa" required></textarea>
+
+        <input type="text" id="solicitante" placeholder="Nome de quem está solicitando" required />
+
+        <select id="prioridade" required>
+          <option value="">Selecione a prioridade</option>
+          <option value="Baixa">Baixa</option>
+          <option value="Média">Média</option>
+          <option value="Alta">Alta</option>
+          <option value="Urgente">Urgente</option>
+        </select>
+
+        <input type="date" id="prazo" />
+
+        <button type="submit" class="btn-enviar">Adicionar tarefa</button>
+      </form>
+    </section>
+  </main>
+
+  <script>
+    let tarefas = JSON.parse(localStorage.getItem("tarefas")) || [];
+
+    const form = document.getElementById("form-tarefa");
+    const listaAndamento = document.getElementById("tarefas-andamento");
+    const listaFila = document.getElementById("tarefas-fila");
+    const listaCompletas = document.getElementById("tarefas-completas");
+
+    function salvarTarefas() {
+      localStorage.setItem("tarefas", JSON.stringify(tarefas));
+    }
+
+    function renderizarTarefas() {
+      listaAndamento.innerHTML = "";
+      listaFila.innerHTML = "";
+      listaCompletas.innerHTML = "";
+
+      const tarefasAndamento = tarefas.filter(tarefa => tarefa.status === "andamento");
+      const tarefasFila = tarefas.filter(tarefa => tarefa.status === "fila");
+      const tarefasCompletas = tarefas.filter(tarefa => tarefa.status === "completa");
+
+      if (tarefasAndamento.length === 0) {
+        listaAndamento.innerHTML = "<p>Nenhuma tarefa em andamento.</p>";
+      }
+
+      if (tarefasFila.length === 0) {
+        listaFila.innerHTML = "<p>Nenhuma tarefa na fila.</p>";
+      }
+
+      if (tarefasCompletas.length === 0) {
+        listaCompletas.innerHTML = "<p>Nenhuma atividade completa.</p>";
+      }
+
+      tarefas.forEach(tarefa => {
+        const card = document.createElement("div");
+        card.classList.add("tarefa");
+
+        card.innerHTML = `
+          <h3>${tarefa.titulo}</h3>
+          <p>${tarefa.descricao}</p>
+          <div class="info">
+            <strong>Solicitante:</strong> ${tarefa.solicitante}<br>
+            <strong>Prioridade:</strong> ${tarefa.prioridade}<br>
+            <strong>Prazo:</strong> ${tarefa.prazo || "Sem prazo definido"}
+          </div>
+
+          <div class="botoes">
+            ${
+              tarefa.status !== "andamento"
+                ? `<button class="btn-andamento" onclick="alterarStatus(${tarefa.id}, 'andamento')">Mover para andamento</button>`
+                : ""
+            }
+
+            ${
+              tarefa.status !== "fila"
+                ? `<button class="btn-fila" onclick="alterarStatus(${tarefa.id}, 'fila')">Mover para fila</button>`
+                : ""
+            }
+
+            ${
+              tarefa.status !== "completa"
+                ? `<button class="btn-completa" onclick="alterarStatus(${tarefa.id}, 'completa')">Marcar como completa</button>`
+                : ""
+            }
+
+            <button class="btn-remover" onclick="removerTarefa(${tarefa.id})">Remover</button>
+          </div>
+        `;
+
+        if (tarefa.status === "andamento") {
+          listaAndamento.appendChild(card);
+        } else if (tarefa.status === "completa") {
+          listaCompletas.appendChild(card);
+        } else {
+          listaFila.appendChild(card);
+        }
+      });
+    }
+
+    function alterarStatus(id, novoStatus) {
+      tarefas = tarefas.map(tarefa => {
+        if (tarefa.id === id) {
+          return { ...tarefa, status: novoStatus };
+        }
+
+        return tarefa;
+      });
+
+      salvarTarefas();
+      renderizarTarefas();
+    }
+
+    function removerTarefa(id) {
+      tarefas = tarefas.filter(tarefa => tarefa.id !== id);
+      salvarTarefas();
+      renderizarTarefas();
+    }
+
+    form.addEventListener("submit", function(event) {
+      event.preventDefault();
+
+      const novaTarefa = {
+        id: Date.now(),
+        titulo: document.getElementById("titulo").value,
+        descricao: document.getElementById("descricao").value,
+        solicitante: document.getElementById("solicitante").value,
+        prioridade: document.getElementById("prioridade").value,
+        prazo: document.getElementById("prazo").value,
+        status: "fila"
+      };
+
+      tarefas.push(novaTarefa);
+      salvarTarefas();
+      renderizarTarefas();
+
+      form.reset();
+    });
+
+    renderizarTarefas();
+  </script>
+</body>
+</html>
